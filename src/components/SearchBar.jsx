@@ -2,26 +2,36 @@ import { useState } from "react";
 import SearchButton from "./SearchButton";
 import Main from "./Main";
 
-const SearchBar = ({ onSearch }) => {
+const SearchBar = () => {
     const [searchQuery, setSearchQuery] = useState("");
     const [weatherResult, setWeatherResult] = useState(null);
+    const [error, setError] = useState("");
 
     const handleInputChange = (e) => {
         setSearchQuery(e.target.value);
+        setError("");
     };
 
-    const handleSearchClick = async () => {
+    const handleSearchClick = async () => {  
+        if(!searchQuery.trim()) return;
+
         try {
             const response = await fetch(
                 `https://api.weatherapi.com/v1/current.json?key=${import.meta.env.VITE_WEATHER_API_KEY}&q=${searchQuery}`
             );
-            const result = await response.json();
-            if (searchQuery.trim()) {
-                setWeatherResult(result);
+            if(!response.ok){
+                if (response.status === 400) {
+                    throw new Error('Invalid location: Please try a new location.');
+                } else {
+                    throw new Error('Something went wrong. Please try again')
+                }
             }
+            const result = await response.json();
+            setWeatherResult(result);
+            setError("");
         } catch (error) {
-            console.error("Error fetching data:", error);
             setWeatherResult(null);
+            setError(error.message);
         }
         
     };
@@ -42,7 +52,7 @@ const SearchBar = ({ onSearch }) => {
                 </div>
                 <SearchButton onSearch={handleSearchClick} />
             </div>
-            <Main data={weatherResult} />
+            <Main data={weatherResult} error={error}/>
         </>
     );
 };
